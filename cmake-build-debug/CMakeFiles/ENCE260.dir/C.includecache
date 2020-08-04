@@ -1,0 +1,30 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/llamington/Documents/ENCE260/expressions.c
+stdio.h
+-
+
+/home/llamington/Documents/ENCE260/lab2.c
+stdio.h
+-
+stdlib.h
+-
+
+/home/llamington/Documents/ENCE260/lab2_2.c
+stdio.h
+-
+math.h
+-
+stdlib.h
+-
+
+/home/llamington/Documents/ENCE260/test1.c
+stdio.h
+-
+
