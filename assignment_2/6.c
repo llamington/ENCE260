@@ -36,15 +36,63 @@ Agent *readAgent(FILE *file, AgentPool *agentPool);
 Agent *findAgent(char name[], AgentPool *agentPool);
 void readAgentName(char agentName[], size_t maxAgentNameLength);
 
+void encryptMessage(char book[], size_t bookLength, Agent *agent, char message[], size_t messageLength) {
+    int key = agent->key % bookLength;
+    for (int i = 0; i < messageLength; i++) {
+        message[i] = (book[key++] + message[i]) % 98;
+        key = key % bookLength;
+    }
+}
+
+void decryptMessage(char book[], size_t bookLength, Agent *agent, char message[], size_t messageLength) {
+    int key = agent->key % bookLength;
+    for (int i = 0; i < messageLength; i++) {
+        message[i] = (((message[i] - book[key++]) % 98) + 98) % 98;
+        key = key % bookLength;
+        if (1 <= message[i] && message[i] <= 95) {
+            message[i] += 31;
+        } else if (message[i] == 96) {
+            message[i] = '\t';
+        } else if (message[i] == 97) {
+            message[i] = '\n';
+        }
+    }
+}
+
 int main(void)
 {
-    char filename[MAX_FILENAME_LENGTH] = "";
+    char filename[80] = "";
+    char agentname[MAX_AGENTNAME_LENGTH] = "";
     FILE *file = NULL;
-    Agent *agent = NULL;
+    char book[MAX_TEXTFILE_SIZE] = "";
+    char message[MAX_TEXTFILE_SIZE] = "";
+    size_t bookLength = 0;
+    size_t messageLength = 0;
     AgentPool agentPool;
+    Agent *agent = NULL;
 
-    initAgentPool(&agentPool);
+    // Read in the cipher book
     scanf("%80s", filename);
+    file = fopen(filename, "r");
+    if (file == NULL)
+    {
+        printf("File not found... program will fail with segmentation fault\n");
+    }
+    bookLength = readCipherBook(file, book, MAX_TEXTFILE_SIZE);
+    fclose(file);
+
+    // Read in the message
+    scanf("%80s", filename);
+    file = fopen(filename, "r");
+    if (file == NULL)
+    {
+        printf("File not found... program will fail with segmentation fault\n");
+    }
+    messageLength = readMessage(file, message, MAX_TEXTFILE_SIZE);
+    fclose(file);
+
+    scanf("%80s", filename);
+    initAgentPool(&agentPool);
     file = fopen(filename, "r");
     if (file == NULL)
     {
@@ -52,16 +100,42 @@ int main(void)
     }
     while (!feof(file))
     {
-        agent = readAgent(file, &agentPool);
+        readAgent(file, &agentPool);
     }
     fclose(file);
-    for (int i = 0; i < agentPool.next; i++)
-    {
-        agent = &agentPool.pool[i];
-        printf("Agent[%d] = %s, key = %zu\n", i, agent->name, agent->key);
-    }
 
+    getchar();
+    readAgentName(agentname, MAX_AGENTNAME_LENGTH);
+    agent = findAgent(agentname, &agentPool);
+    if (agent != NULL)
+    {
+        encryptMessage(book, bookLength, agent, message, messageLength);
+        printf("Secret message is: ");
+        for (size_t i = 0; i < messageLength; i++)
+        {
+            printf(" %d", message[i]);
+        }
+        decryptMessage(book, bookLength, agent, message, messageLength);
+        printf("\nDecrypted message is: %s\n", message);
+    }
+    else
+    {
+        printf("No Agent found by the name %s\n", agentname);
+    }
     return 0;
+}
+
+Agent *findAgent(char name[], AgentPool *agentPool)
+{
+    // returns reference to agent matching name, or NULL if name not in agentPool
+    for (int i = 0; i < MAX_NUMBER_AGENTS; i++)
+    {
+        if (strncmp(name, agentPool->pool[i].name, MAX_AGENTNAME_LENGTH) == 0)
+        {
+            return &agentPool->pool[i];
+        }
+    }
+    return NULL;
 }
 
 // A function to initialise an AgentPool structure
@@ -139,7 +213,7 @@ void readAgentName(char agentName[], size_t maxAgentNameLength)
 
 Agent *newAgent(AgentPool *agentPool)
 {
-    Agent* next_available;
+    Agent *next_available;
     if (agentPool->next != agentPool->size)
     {
         next_available = agentPool->pool + agentPool->next;
@@ -189,4 +263,23 @@ size_t readMessage(FILE *file, char text[], size_t maxTextSize)
     transformed_text[transformed_text_index] = '\0';
     strncpy(text, transformed_text, maxTextSize);
     return transformed_text_index;
+}
+
+size_t readCipherBook(FILE *file, char text[], size_t maxTextSize)
+{
+    size_t text_size = readText(file, text, maxTextSize);
+    int reduced_text_size = 0;
+    int c;
+    char text_no_spaces[maxTextSize];
+    for (int i = 0; i < text_size; i++)
+    {
+        c = text[i];
+        if (!isspace(c))
+        {
+            text_no_spaces[reduced_text_size++] = c;
+        }
+    }
+    text_no_spaces[reduced_text_size] = '\0';
+    strncpy(text, text_no_spaces, maxTextSize);
+    return reduced_text_size;
 }

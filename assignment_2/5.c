@@ -36,15 +36,26 @@ Agent *readAgent(FILE *file, AgentPool *agentPool);
 Agent *findAgent(char name[], AgentPool *agentPool);
 void readAgentName(char agentName[], size_t maxAgentNameLength);
 
+Agent* findAgent(char name[], AgentPool* agentPool)
+{
+    // returns reference to agent matching name, or NULL if name not in agentPool
+    for(int i = 0; i < MAX_NUMBER_AGENTS; i++) {
+        if (strncmp(name, agentPool->pool[i].name, MAX_AGENTNAME_LENGTH) == 0) {
+            return &agentPool->pool[i];
+        }
+    }
+    return NULL;
+}
 int main(void)
 {
-    char filename[MAX_FILENAME_LENGTH] = "";
+    char filename[80] = "";
+    char agentname[MAX_AGENTNAME_LENGTH] = "";
     FILE *file = NULL;
-    Agent *agent = NULL;
     AgentPool agentPool;
+    Agent *agent;
 
-    initAgentPool(&agentPool);
     scanf("%80s", filename);
+    initAgentPool(&agentPool);
     file = fopen(filename, "r");
     if (file == NULL)
     {
@@ -55,12 +66,19 @@ int main(void)
         agent = readAgent(file, &agentPool);
     }
     fclose(file);
-    for (int i = 0; i < agentPool.next; i++)
-    {
-        agent = &agentPool.pool[i];
-        printf("Agent[%d] = %s, key = %zu\n", i, agent->name, agent->key);
-    }
 
+    getchar();
+
+    readAgentName(agentname, MAX_AGENTNAME_LENGTH);
+    agent = findAgent(agentname, &agentPool);
+    if (agent != NULL)
+    {
+        printf("Found Agent %s with key %zu\n", agent->name, agent->key);
+    }
+    else
+    {
+        printf("No Agent found by the name %s\n", agentname);
+    }
     return 0;
 }
 
@@ -139,7 +157,7 @@ void readAgentName(char agentName[], size_t maxAgentNameLength)
 
 Agent *newAgent(AgentPool *agentPool)
 {
-    Agent* next_available;
+    Agent *next_available;
     if (agentPool->next != agentPool->size)
     {
         next_available = agentPool->pool + agentPool->next;
